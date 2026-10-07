@@ -1,0 +1,1039 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>CloudPilot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a flight-deck console. Dark navy stage + instrument-style readouts beside a quiet working surface.
+   Sign-in is a split screen: scheduled-hours timeline on the left, form on the right. */
+:root {
+  --bg: #eef1f7;
+  --surface: #ffffff;
+  --surface-2: #f5f7fb;
+  --line: #dce2ee;
+  --ink: #0f1a2e;
+  --ink-2: #4a5873;
+  --ink-3: #5f6d88;
+  --accent: #2f5bd9;
+  --accent-ink: #ffffff;
+  --accent-soft: #e3eaff;
+  --side: #0e1830;
+  --side-ink: #aebbd6;
+  --side-active: #1a2a50;
+  --side-line: #1f3058;
+  --ok: #1d7f47;
+  --ok-soft: #ddf2e5;
+  --warn: #9a5a08;
+  --warn-soft: #fbead0;
+  --crit: #b3382c;
+  --crit-soft: #fbe3e0;
+  --save: #b8780f;
+  --stage-bg: #0c1630;
+  --stage-ink: #e8eefc;
+  --stage-ink-2: #9fb0d3;
+  --stage-line: rgba(255,255,255,0.08);
+  --stage-bar: #6b92ff;
+  --stage-off: rgba(255,255,255,0.05);
+  --font-display: 'Bricolage Grotesque', 'IBM Plex Sans', system-ui, sans-serif;
+  --font-body: 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a1020; --surface: #101a30; --surface-2: #16223e; --line: #243456;
+    --ink: #e7edfb; --ink-2: #a6b4d2; --ink-3: #7384a8;
+    --accent: #6b92ff; --accent-ink: #071233; --accent-soft: #172a5a;
+    --side: #080e1e; --side-ink: #8fa0c4; --side-active: #15234a; --side-line: #16213f;
+    --ok: #4cc58a; --ok-soft: #12351f; --warn: #e5a04a; --warn-soft: #3a2a10;
+    --crit: #ef7d70; --crit-soft: #3d1b17; --save: #e5a94a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0a1020; --surface: #101a30; --surface-2: #16223e; --line: #243456;
+  --ink: #e7edfb; --ink-2: #a6b4d2; --ink-3: #7384a8;
+  --accent: #6b92ff; --accent-ink: #071233; --accent-soft: #172a5a;
+  --side: #080e1e; --side-ink: #8fa0c4; --side-active: #15234a; --side-line: #16213f;
+  --ok: #4cc58a; --ok-soft: #12351f; --warn: #e5a04a; --warn-soft: #3a2a10;
+  --crit: #ef7d70; --crit-soft: #3d1b17; --save: #e5a94a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { background: var(--bg); }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.5;
+}
+button, input, select { font-family: inherit; }
+button { cursor: pointer; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+p { margin: 0; }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- Buttons & form controls ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 36px; padding: 0 14px; border-radius: 6px; border: 1px solid transparent;
+  font-size: 13px; font-weight: 600; background: transparent; color: var(--ink);
+  transition: background .15s, border-color .15s, opacity .15s;
+}
+.btn svg { width: 16px; height: 16px; flex: none; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover:not(:disabled) { filter: brightness(1.08); }
+.btn.ghost { border-color: var(--line); background: var(--surface); color: var(--ink-2); }
+.btn.ghost:hover:not(:disabled) { border-color: var(--ink-3); color: var(--ink); }
+.btn.sm { height: 30px; padding: 0 11px; font-size: 12px; }
+.btn.start { background: var(--ok-soft); color: var(--ok); }
+.btn.stop { background: var(--warn-soft); color: var(--warn); }
+.btn.danger { background: var(--crit-soft); color: var(--crit); }
+.btn.neutral { background: var(--surface-2); color: var(--ink-2); border-color: var(--line); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.link { background: none; border: 0; padding: 0; color: var(--accent); font-weight: 600; font-size: 13px; }
+.link:hover { text-decoration: underline; }
+
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field > label, .field > .lbl { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+.input, .select {
+  width: 100%; height: 40px; padding: 0 12px; border-radius: 6px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 14px;
+}
+.input::placeholder { color: var(--ink-3); }
+.input:hover, .select:hover { border-color: var(--ink-3); }
+.input:focus-visible, .select:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+.input.sm, .select.sm { height: 34px; font-size: 13px; }
+.pw { position: relative; }
+.pw .input { padding-right: 44px; }
+.pw button {
+  position: absolute; right: 4px; top: 4px; width: 32px; height: 32px; border: 0; border-radius: 5px;
+  background: transparent; color: var(--ink-3); display: grid; place-items: center;
+}
+.pw button:hover { color: var(--ink); background: var(--surface-2); }
+.pw svg { width: 18px; height: 18px; }
+.check { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+.check input { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; }
+
+/* ---------- Sign-in ---------- */
+.login { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); min-height: 100dvh; background: var(--bg); }
+.stage {
+  position: relative; overflow: hidden; background: var(--stage-bg); color: var(--stage-ink);
+  padding: clamp(24px, 4vw, 56px); display: flex; flex-direction: column; justify-content: space-between; gap: 40px;
+  background-image:
+    linear-gradient(var(--stage-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--stage-line) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+.stage .logo { display: flex; align-items: center; gap: 11px; }
+.logo .mark { width: 34px; height: 34px; flex: none; }
+.logo b { font-family: var(--font-display); font-weight: 700; font-size: 19px; letter-spacing: -0.2px; display: block; line-height: 1.1; }
+.logo small { font-family: var(--font-mono); font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--stage-ink-2); }
+.pitch h2 {
+  font-size: clamp(30px, 3.6vw, 48px); line-height: 1.04; font-weight: 700; letter-spacing: -0.03em; max-width: 14em; color: var(--stage-ink);
+}
+.pitch p { margin-top: 16px; max-width: 34em; color: var(--stage-ink-2); font-size: 15px; }
+.timeline { background: rgba(5, 10, 24, 0.72); border: 1px solid var(--stage-line); border-radius: 10px; padding: 18px 18px 14px; }
+.tl-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; font-family: var(--font-mono); font-size: 11px; color: var(--stage-ink-2); letter-spacing: 0.4px; }
+.tl-head b { color: var(--stage-ink); font-weight: 500; }
+.tl-row { display: grid; grid-template-columns: 150px minmax(0, 1fr) 64px; gap: 12px; align-items: center; padding: 7px 0; }
+.tl-name { font-size: 12px; color: var(--stage-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tl-track {
+  display: grid; grid-template-columns: repeat(24, 1fr); height: 14px; border-radius: 3px; background: var(--stage-off);
+  background-image: repeating-linear-gradient(135deg, transparent 0 4px, rgba(255,255,255,0.05) 4px 5px);
+}
+.tl-track i { background: var(--stage-bar); border-radius: 3px; height: 100%; }
+.tl-off { font-family: var(--font-mono); font-size: 11px; color: var(--stage-ink-2); text-align: right; }
+.tl-axis { display: grid; grid-template-columns: 150px minmax(0, 1fr) 64px; gap: 12px; margin-top: 4px; }
+.tl-axis div { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 10px; color: var(--stage-ink-2); }
+.tl-foot { margin-top: 12px; font-size: 12px; color: var(--stage-ink-2); }
+
+.formside { display: grid; place-items: center; padding: 40px 16px; }
+.formcard { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 24px; }
+.formcard h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; }
+.formcard .sub { color: var(--ink-2); margin-top: 8px; }
+.form { display: flex; flex-direction: column; gap: 16px; }
+.formrow { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.form .btn.primary { height: 42px; font-size: 14px; }
+.formerr { display: flex; gap: 9px; align-items: flex-start; padding: 10px 12px; border-radius: 6px; background: var(--crit-soft); color: var(--crit); font-size: 13px; }
+.formerr svg { width: 16px; height: 16px; flex: none; margin-top: 2px; }
+.forminfo { padding: 10px 12px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); font-size: 13px; }
+.demobox { border: 1px dashed var(--line); border-radius: 8px; padding: 14px; background: var(--surface); display: flex; flex-direction: column; gap: 10px; }
+.demobox .t { font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-3); }
+.demobox dl { margin: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; font-size: 12px; }
+.demobox dt { color: var(--ink-3); }
+.demobox dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+.spin { width: 15px; height: 15px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- App shell ---------- */
+.app { display: grid; grid-template-columns: 236px minmax(0, 1fr); min-height: 100dvh; }
+.side {
+  background: var(--side); color: var(--side-ink); padding: 22px 14px; display: flex; flex-direction: column; gap: 6px;
+  position: sticky; top: 0; height: 100dvh; align-self: start;
+}
+.side .logo { padding: 2px 8px 26px; color: #fff; }
+.side .logo small { color: var(--side-ink); }
+.navlabel { font-family: var(--font-mono); font-size: 10px; letter-spacing: 1.4px; text-transform: uppercase; color: var(--ink-3); padding: 0 10px 8px; }
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.navbtn {
+  display: flex; align-items: center; gap: 11px; width: 100%; text-align: left; padding: 10px 10px; border: 0; border-radius: 6px;
+  background: transparent; color: var(--side-ink); font-size: 13.5px; font-weight: 500; position: relative; white-space: nowrap;
+}
+.navbtn svg { width: 18px; height: 18px; flex: none; }
+.navbtn:hover { background: var(--side-active); color: #fff; }
+.navbtn.active { background: var(--side-active); color: #fff; }
+.navbtn.active::before { content: ''; position: absolute; left: -14px; top: 9px; bottom: 9px; width: 3px; border-radius: 0 3px 3px 0; background: var(--accent); }
+.who { margin-top: auto; border-top: 1px solid var(--side-line); padding: 16px 6px 0; display: flex; align-items: center; gap: 10px; min-width: 0; }
+.avatar { width: 34px; height: 34px; flex: none; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; font-weight: 700; font-family: var(--font-display); }
+.who .meta { min-width: 0; flex: 1; }
+.who .meta b { display: block; color: #fff; font-size: 13px; font-weight: 600; }
+.who .meta small { display: block; color: var(--side-ink); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.iconbtn { width: 32px; height: 32px; flex: none; border: 0; border-radius: 6px; background: transparent; color: var(--side-ink); display: grid; place-items: center; }
+.iconbtn:hover { background: var(--side-active); color: #fff; }
+.iconbtn svg { width: 18px; height: 18px; }
+
+.main { min-width: 0; padding: 28px clamp(16px, 3vw, 40px) 20px; max-width: 1440px; width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+.pagehead { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.crumb { font-family: var(--font-mono); font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--ink-3); }
+.pagehead h1 { font-size: 30px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin-top: 6px; }
+.pagehead p { color: var(--ink-2); margin-top: 6px; max-width: 46em; }
+.headtools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.mode { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 11px; border-radius: 99px; font-family: var(--font-mono); font-size: 11px; letter-spacing: .6px; background: var(--warn-soft); color: var(--warn); }
+.mode i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.mode.aws { background: var(--ok-soft); color: var(--ok); }
+
+.alert { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 6px; font-size: 13px; }
+.alert.error { background: var(--crit-soft); color: var(--crit); }
+.alert.success { background: var(--ok-soft); color: var(--ok); }
+.alert button { background: none; border: 0; color: inherit; font-size: 12px; font-weight: 600; padding: 0; text-decoration: underline; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; min-width: 0; overflow: hidden; }
+.panelhead { padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; }
+.panelhead h2 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+.panelhead p { font-size: 13px; color: var(--ink-3); margin-top: 3px; }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; }
+.filters .input { width: 220px; }
+.filters .select { width: 140px; }
+.searchwrap { position: relative; }
+.searchwrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: var(--ink-3); pointer-events: none; }
+.searchwrap .input { padding-left: 32px; }
+.hint { font-size: 12px; color: var(--ink-3); padding: 0 20px 16px; }
+.tag { font-family: var(--font-mono); font-size: 10px; letter-spacing: 1px; background: var(--accent-soft); color: var(--accent); padding: 5px 8px; border-radius: 4px; }
+
+/* readouts */
+.readout { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.readout > div { padding: 18px 20px; border-left: 1px solid var(--line); min-width: 0; }
+.readout > div:first-child { border-left: 0; }
+.readout .k { font-size: 12px; font-weight: 600; color: var(--ink-3); display: flex; align-items: center; gap: 8px; }
+.readout .k i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.readout .v { font-family: var(--font-display); font-size: 36px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; margin-top: 8px; font-variant-numeric: tabular-nums; }
+.readout .n { font-size: 12px; color: var(--ink-3); margin-top: 4px; }
+.dot-ok { background: var(--ok); } .dot-warn { background: var(--save); } .dot-off { background: var(--ink-3); } .dot-acc { background: var(--accent); }
+
+.fleet { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+.fleet > section { padding: 22px 24px; min-width: 0; }
+.fleet > section + section { border-left: 1px solid var(--line); background: var(--surface-2); }
+.eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--ink-3); }
+.bigmoney { font-family: var(--font-display); font-size: clamp(38px, 5vw, 56px); font-weight: 700; letter-spacing: -0.04em; line-height: 1; margin: 10px 0 8px; font-variant-numeric: tabular-nums; }
+.bigmoney em { font: 500 14px var(--font-mono); color: var(--ink-3); letter-spacing: 0; margin-left: 6px; font-style: normal; }
+.save .bigmoney { color: var(--save); }
+.fine { font-size: 12px; color: var(--ink-3); max-width: 38em; }
+.fleetbar { display: flex; height: 12px; border-radius: 3px; overflow: hidden; gap: 2px; margin: 18px 0 12px; background: var(--surface-2); }
+.fleetbar i { display: block; min-width: 4px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+
+/* table */
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; text-align: left; white-space: nowrap; }
+th { font-family: var(--font-mono); font-size: 10.5px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; color: var(--ink-3); background: var(--surface-2); padding: 11px 20px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+td { font-size: 13px; color: var(--ink-2); padding: 14px 20px; border-bottom: 1px solid var(--line); }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover td { background: var(--surface-2); }
+td .nm { display: block; color: var(--ink); font-weight: 600; font-size: 13.5px; }
+td .id { display: block; font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); margin-top: 2px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 99px; font-size: 12px; font-weight: 600; text-transform: capitalize; }
+.pill i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.pill.running { background: var(--ok-soft); color: var(--ok); }
+.pill.stopped { background: var(--surface-2); color: var(--ink-3); border: 1px solid var(--line); }
+.chip { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 4px; font-size: 12px; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-2); }
+.chip.warn { background: var(--warn-soft); border-color: transparent; color: var(--warn); font-weight: 600; margin-left: 8px; }
+.cpu { display: inline-flex; align-items: center; gap: 10px; }
+.meter { width: 64px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; display: inline-block; }
+.meter i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+.meter i.low { background: var(--save); }
+.tablefoot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 12px 20px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-3); }
+.empty { text-align: center; padding: 28px 20px; color: var(--ink-3); }
+
+.quick { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.quick button { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 16px 18px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 14px; font-weight: 500; text-align: left; }
+.quick button:hover { border-color: var(--accent); }
+.quick svg { width: 18px; height: 18px; color: var(--accent); flex: none; }
+
+/* schedules */
+.scheduleform { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) auto; gap: 14px; align-items: end; padding: 0 20px 18px; }
+.scheduleform .btn { height: 40px; }
+.row { display: flex; align-items: center; gap: 14px; padding: 14px 20px; border-top: 1px solid var(--line); min-width: 0; }
+.row .info { flex: 1; min-width: 0; }
+.row .info b { display: block; color: var(--ink); font-size: 13.5px; font-weight: 600; overflow-wrap: anywhere; }
+.row .info small { display: block; color: var(--ink-3); font-size: 12px; margin-top: 2px; overflow-wrap: anywhere; }
+.when { width: 74px; flex: none; font-family: var(--font-mono); font-size: 18px; font-weight: 500; color: var(--ink); }
+.badge { height: 22px; padding: 0 8px; display: inline-flex; align-items: center; border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; }
+.badge.act-start { background: var(--ok-soft); color: var(--ok); }
+.badge.act-stop { background: var(--warn-soft); color: var(--warn); }
+.state-on { background: var(--ok-soft); color: var(--ok); }
+.state-off { background: var(--surface-2); color: var(--ink-3); border: 1px solid var(--line); }
+.rowbtns { display: flex; gap: 8px; flex-wrap: wrap; }
+.logicon { width: 32px; height: 32px; flex: none; border-radius: 6px; background: var(--accent-soft); color: var(--accent); display: grid; place-items: center; }
+.logicon svg { width: 16px; height: 16px; }
+.row time { margin-left: auto; font-family: var(--font-mono); font-size: 12px; color: var(--ink-3); text-align: right; }
+
+.opp .save-amt { font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--save); white-space: nowrap; }
+.opp .save-amt small { display: block; font: 400 11px var(--font-body); color: var(--ink-3); text-align: right; margin: 0; }
+
+.setting { display: flex; justify-content: space-between; gap: 16px; padding: 14px 20px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--ink-2); }
+.setting b { color: var(--ink); font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+.noticebox { margin: 4px 20px 20px; background: var(--accent-soft); color: var(--ink-2); padding: 14px 16px; border-radius: 6px; font-size: 13px; line-height: 1.6; }
+.noticebox b { color: var(--ink); }
+
+.foot { text-align: center; color: var(--ink-3); font-size: 12px; padding: 8px 0 4px; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1100px) {
+  .readout { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .readout > div:nth-child(3) { border-left: 0; }
+  .readout > div:nth-child(n+3) { border-top: 1px solid var(--line); }
+  .scheduleform { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .scheduleform .btn { grid-column: span 2; }
+}
+@media (max-width: 860px) {
+  .login { grid-template-columns: minmax(0, 1fr); }
+  .stage { padding: 22px 16px; gap: 18px; background-image: none; }
+  .timeline { display: none; }
+  .pitch h2 { font-size: 26px; }
+  .pitch p { display: none; }
+  .formside { padding: 28px 16px 40px; }
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .side { position: static; height: auto; flex-direction: row; align-items: center; padding: 12px 16px; gap: 10px; flex-wrap: wrap; }
+  .side .logo { padding: 0; }
+  .navlabel { display: none; }
+  .nav { order: 3; flex-direction: row; width: 100%; overflow-x: auto; gap: 4px; padding-bottom: 2px; }
+  .navbtn { width: auto; padding: 8px 12px; flex: none; }
+  .navbtn.active::before { display: none; }
+  .who { margin: 0 0 0 auto; border: 0; padding: 0; }
+  .who .meta { display: none; }
+  .fleet { grid-template-columns: minmax(0, 1fr); }
+  .fleet > section + section { border-left: 0; border-top: 1px solid var(--line); }
+  .quick { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .readout .v { font-size: 30px; }
+  .readout > div { padding: 14px 16px; }
+  .scheduleform { grid-template-columns: minmax(0, 1fr); padding-inline: 16px; }
+  .scheduleform .btn { grid-column: auto; }
+  .filters, .filters .searchwrap { width: 100%; }
+  .filters .input, .filters .select { width: 100%; }
+  .filters .searchwrap { flex: 1 1 100%; }
+  .row { flex-wrap: wrap; padding-inline: 16px; }
+  .row time { display: none; }
+  .panelhead { padding-inline: 16px; }
+  .pagehead h1 { font-size: 26px; }
+  .setting { padding-inline: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spin { animation-duration: 2s; }
+  * { transition: none !important; }
+}
+</style>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.26.4/babel.min.js"></script>
+<script type="text/babel" data-presets="react">
+const { useEffect, useState } = React;
+
+/* ---------------- In-browser stand-in for the Express demo API ---------------- */
+const region = 'ap-south-1', RATE = 0.06, MONTH_HOURS = 720;
+const store = {
+  instances: [
+    { id: 'i-demo-101', name: 'Development Server', type: 't3.micro', state: 'running', cpu: 4, region, environment: 'Development' },
+    { id: 'i-demo-102', name: 'QA Testing', type: 't3.small', state: 'stopped', cpu: 0, region, environment: 'Testing' },
+    { id: 'i-demo-103', name: 'Analytics Worker', type: 't3.medium', state: 'running', cpu: 7, region, environment: 'Production' },
+    { id: 'i-demo-104', name: 'Staging API', type: 't3.small', state: 'running', cpu: 22, region, environment: 'Staging' },
+  ],
+  activity: [{ id: 1, time: new Date().toISOString(), action: 'Demo workspace initialized', instanceId: '—' }],
+  schedules: [],
+};
+let seq = 1000;
+function log(action, instanceId) {
+  store.activity.unshift({ id: ++seq, time: new Date().toISOString(), action, instanceId });
+  store.activity = store.activity.slice(0, 100);
+}
+const fail = (m) => { throw Error(m); };
+async function req(path, options = {}) {
+  await new Promise((r) => setTimeout(r, 120));
+  const method = (options.method || 'GET').toUpperCase();
+  const body = options.body ? JSON.parse(options.body) : {};
+  const copy = (x) => JSON.parse(JSON.stringify(x));
+  let m;
+  if (method === 'GET' && path === '/instances') return copy(store.instances);
+  if (method === 'GET' && path === '/dashboard') {
+    const a = store.instances;
+    const running = a.filter((x) => x.state === 'running').length;
+    const idle = a.filter((x) => x.state === 'running' && x.cpu !== null && x.cpu < 10).length;
+    return { total: a.length, running, stopped: a.filter((x) => x.state === 'stopped').length, idle,
+      estimatedMonthly: running * MONTH_HOURS * RATE, estimatedSavings: idle * MONTH_HOURS * RATE, mode: 'Demo' };
+  }
+  if (method === 'GET' && path === '/activity') return copy(store.activity);
+  if (method === 'GET' && path === '/schedules') return copy(store.schedules);
+  if (method === 'POST' && (m = path.match(/^\/instances\/([^/]+)\/(\w+)$/))) {
+    const [, id, action] = m;
+    if (!['start', 'stop', 'reboot'].includes(action)) fail('Invalid action');
+    const x = store.instances.find((i) => i.id === id) || fail('Instance not found');
+    if (action !== 'reboot') x.state = action === 'start' ? 'running' : 'stopped';
+    log(action.toUpperCase() + ' requested', id);
+    return { ok: true, message: `${action} request accepted for ${id}` };
+  }
+  if (method === 'POST' && path === '/schedules') {
+    const { instanceId, action, time, days } = body;
+    if (!instanceId || !['start', 'stop'].includes(action) || !time) fail('Instance, action and time are required');
+    const s = { id: ++seq, instanceId, action, time, days: days || 'Every day', enabled: true };
+    store.schedules.unshift(s);
+    log(`Schedule created: ${action} at ${time}`, instanceId);
+    return s;
+  }
+  if (method === 'PATCH' && (m = path.match(/^\/schedules\/(\d+)$/))) {
+    const s = store.schedules.find((x) => x.id === Number(m[1])) || fail('Schedule not found');
+    s.enabled = !!body.enabled;
+    return copy(s);
+  }
+  if (method === 'DELETE' && (m = path.match(/^\/schedules\/(\d+)$/))) {
+    store.schedules = store.schedules.filter((x) => x.id !== Number(m[1]));
+    return { ok: true };
+  }
+  fail('Not found');
+}
+
+/* ---------------- Icons ---------------- */
+const ICONS = {
+  overview: <><rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" /><rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" /></>,
+  instances: <><rect x="3" y="4" width="18" height="7" rx="2" /><rect x="3" y="13" width="18" height="7" rx="2" /><path d="M7 7.5h.01M7 16.5h.01" /></>,
+  schedules: <><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></>,
+  cost: <><path d="M4 19V5M4 19h16" /><path d="M8 15l3-4 3 2 5-6" /></>,
+  activity: <><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01" /></>,
+  settings: <><path d="M4 7h10M18 7h2M4 17h2M10 17h10" /><circle cx="16" cy="7" r="2" /><circle cx="8" cy="17" r="2" /></>,
+  logout: <><path d="M9 4H5v16h4" /><path d="M16 8l4 4-4 4M20 12H9" /></>,
+  eye: <><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></>,
+  eyeoff: <><path d="M3 3l18 18" /><path d="M10.6 5.1A9.7 9.7 0 0112 5c6.5 0 10 7 10 7a17 17 0 01-3.2 4M6.5 6.6C3.8 8.4 2 12 2 12s3.5 7 10 7c1.6 0 3-.4 4.3-1" /><path d="M9.9 9.9a3 3 0 004.2 4.2" /></>,
+  refresh: <><path d="M20 11a8 8 0 10-2.3 5.7" /><path d="M20 4v7h-7" /></>,
+  play: <path d="M8 5v14l11-7z" />,
+  stop: <rect x="6" y="6" width="12" height="12" rx="1.5" />,
+  search: <><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></>,
+  arrow: <path d="M5 12h14M13 6l6 6-6 6" />,
+  alert: <><circle cx="12" cy="12" r="9" /><path d="M12 7v6M12 16.5h.01" /></>,
+  bolt: <path d="M13 3L5 14h6l-1 7 8-11h-6z" />,
+};
+function Icon({ name }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {ICONS[name]}
+    </svg>
+  );
+}
+function Logo({ light }) {
+  return (
+    <div className="logo">
+      <svg className="mark" viewBox="0 0 34 34" aria-hidden="true">
+        <rect width="34" height="34" rx="9" fill="#6b92ff" />
+        <path d="M9 22.5L17 8l8 14.5-8-3.6z" fill="#071233" />
+        <path d="M17 18.9V12" stroke="#6b92ff" strokeWidth="1.6" strokeLinecap="round" />
+      </svg>
+      <div>
+        <b>CloudPilot</b>
+        <small>EC2 lifecycle</small>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Sign-in ---------------- */
+const DEMO = { email: 'admin@cloudpilot.dev', password: 'cloudpilot123', name: 'Project Admin' };
+const SCHEDULED = [
+  ['Development Server', 9, 19],
+  ['QA Testing', 10, 18],
+  ['Staging API', 8, 20],
+];
+
+function Login({ onLogin }) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [show, setShow] = useState(false);
+  const [remember, setRemember] = useState(true);
+  const [err, setErr] = useState('');
+  const [info, setInfo] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  function submit(e) {
+    e.preventDefault();
+    setInfo('');
+    const mail = email.trim();
+    if (!mail || !password) { setErr('Enter your email and password.'); return; }
+    if (!/^\S+@\S+\.\S+$/.test(mail)) { setErr('Enter a valid email address, like name@company.com.'); return; }
+    setErr('');
+    setLoading(true);
+    setTimeout(() => {
+      // Demo workspace: any email and password is accepted.
+      const local = mail.split('@')[0].replace(/[._-]+/g, ' ').trim();
+      const name = local ? local.replace(/\b\w/g, (c) => c.toUpperCase()) : 'Admin';
+      onLogin({ email: mail, name }, remember);
+    }, 700);
+  }
+  function fillDemo() {
+    setEmail(DEMO.email);
+    setPassword(DEMO.password);
+    setErr('');
+    setInfo('');
+  }
+
+  return (
+    <div className="login">
+      <section className="stage">
+        <Logo />
+        <div className="pitch">
+          <h2>Stop paying for servers while nobody is using them.</h2>
+          <p>CloudPilot starts and stops your EC2 instances on a schedule and points out the ones sitting idle, so development and test machines only cost money when someone needs them.</p>
+        </div>
+        <div className="timeline" aria-label="Example schedule across 24 hours">
+          <div className="tl-head">
+            <b>Scheduled hours, one day</b>
+            <span>{region} · IST</span>
+          </div>
+          {SCHEDULED.map(([name, s, e]) => (
+            <div className="tl-row" key={name}>
+              <span className="tl-name">{name}</span>
+              <div className="tl-track">
+                <i style={{ gridColumn: `${s + 1} / ${e + 1}` }} />
+              </div>
+              <span className="tl-off">off {24 - (e - s)}h</span>
+            </div>
+          ))}
+          <div className="tl-axis">
+            <span />
+            <div><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+            <span />
+          </div>
+          <p className="tl-foot">The striped hours are the savings. A 10 hour workday leaves 14 hours a day stopped.</p>
+        </div>
+      </section>
+
+      <section className="formside">
+        <div className="formcard">
+          <div>
+            <h1>Sign in</h1>
+            <p className="sub">Welcome back. Sign in to manage your EC2 instances and schedules.</p>
+          </div>
+          <form className="form" onSubmit={submit} noValidate>
+            {err && (
+              <div className="formerr" role="alert" id="login-error">
+                <Icon name="alert" />
+                <span>{err}</span>
+              </div>
+            )}
+            {info && <div className="forminfo" role="status">{info}</div>}
+            <div className="field">
+              <label htmlFor="login-email">Email</label>
+              <input id="login-email" className="input" type="email" autoComplete="username" placeholder="name@company.com"
+                value={email} onChange={(e) => setEmail(e.target.value)} aria-describedby={err ? 'login-error' : undefined} />
+            </div>
+            <div className="field">
+              <label htmlFor="login-password">Password</label>
+              <div className="pw">
+                <input id="login-password" className="input" type={show ? 'text' : 'password'} autoComplete="current-password" placeholder="Enter your password"
+                  value={password} onChange={(e) => setPassword(e.target.value)} />
+                <button type="button" onClick={() => setShow(!show)} aria-label={show ? 'Hide password' : 'Show password'} aria-pressed={show}>
+                  <Icon name={show ? 'eyeoff' : 'eye'} />
+                </button>
+              </div>
+            </div>
+            <div className="formrow">
+              <label className="check" htmlFor="login-remember">
+                <input id="login-remember" type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} />
+                Keep me signed in
+              </label>
+              <button type="button" className="link" onClick={() => { setErr(''); setInfo('Password reset is not available in the demo workspace. Any email and password will sign you in.'); }}>
+                Forgot password?
+              </button>
+            </div>
+            <button className="btn primary" type="submit" disabled={loading}>
+              {loading ? <><span className="spin" aria-hidden="true" /> Signing in…</> : 'Sign in'}
+            </button>
+          </form>
+          <div className="demobox">
+            <span className="t">Demo workspace · any email and password works</span>
+            <dl>
+              <dt>Email</dt><dd className="mono">{DEMO.email}</dd>
+              <dt>Password</dt><dd className="mono">{DEMO.password}</dd>
+            </dl>
+            <button type="button" className="btn ghost sm" onClick={fillDemo}>Fill in demo account</button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ---------------- Dashboard ---------------- */
+const nav = [
+  ['overview', 'Overview'],
+  ['instances', 'Instances'],
+  ['schedules', 'Schedules'],
+  ['cost', 'Cost insights'],
+  ['activity', 'Activity log'],
+  ['settings', 'Settings'],
+];
+const money = (n) => (n == null ? '—' : '$' + n.toFixed(2));
+const isIdle = (x) => x.state === 'running' && x.cpu !== null && x.cpu < 10;
+
+function Dashboard({ user, onLogout }) {
+  const [page, setPage] = useState('overview'),
+    [instances, setInstances] = useState([]),
+    [dash, setDash] = useState(null),
+    [logs, setLogs] = useState([]),
+    [schedules, setSchedules] = useState([]),
+    [query, setQuery] = useState(''),
+    [filter, setFilter] = useState('all'),
+    [busy, setBusy] = useState(''),
+    [error, setError] = useState(''),
+    [notice, setNotice] = useState(''),
+    [sched, setSched] = useState({ instanceId: '', action: 'stop', time: '19:00', days: 'Every day' });
+
+  async function refresh() {
+    try {
+      setError('');
+      let [a, b, c, d] = await Promise.all([req('/instances'), req('/dashboard'), req('/activity'), req('/schedules')]);
+      setInstances(a); setDash(b); setLogs(c); setSchedules(d);
+      if (!sched.instanceId && a[0]) setSched((s) => ({ ...s, instanceId: a[0].id }));
+    } catch (e) { setError(e.message); }
+  }
+  useEffect(() => {
+    refresh();
+    let t = setInterval(refresh, 7000);
+    return () => clearInterval(t);
+  }, []);
+  async function action(id, act) {
+    setBusy(id + act);
+    try {
+      await req(`/instances/${id}/${act}`, { method: 'POST' });
+      setNotice(`${act} request submitted for ${id}`);
+      await refresh();
+    } catch (e) { setError(e.message); } finally { setBusy(''); }
+  }
+  async function addSchedule(e) {
+    e.preventDefault();
+    try {
+      await req('/schedules', { method: 'POST', body: JSON.stringify(sched) });
+      setNotice('Schedule added to demo schedule list');
+      await refresh();
+    } catch (e) { setError(e.message); }
+  }
+  async function toggleSchedule(s) {
+    try {
+      await req(`/schedules/${s.id}`, { method: 'PATCH', body: JSON.stringify({ enabled: !s.enabled }) });
+      await refresh();
+    } catch (e) { setError(e.message); }
+  }
+  async function deleteSchedule(id) {
+    try { await req(`/schedules/${id}`, { method: 'DELETE' }); await refresh(); } catch (e) { setError(e.message); }
+  }
+
+  const shown = instances.filter(
+    (x) => (filter === 'all' || x.state === filter) && `${x.name} ${x.id} ${x.type}`.toLowerCase().includes(query.toLowerCase()),
+  );
+  const idleList = instances.filter(isIdle);
+  const perInstance = MONTH_HOURS * RATE;
+  const active = (dash?.running ?? 0) - (dash?.idle ?? 0);
+  const subtitle = {
+    overview: 'Monitor resources and take action across your EC2 environment.',
+    instances: 'Search, inspect, and manage your compute instances.',
+    schedules: 'Create and manage lifecycle schedule entries.',
+    cost: 'Review estimated compute usage and savings opportunities.',
+    activity: 'Review recent actions performed in this workspace.',
+    settings: 'Workspace configuration and environment information.',
+  }[page];
+  const panelProps = { items: shown, total: instances.length, query, setQuery, filter, setFilter, action, busy };
+
+  return (
+    <div className="app">
+      <aside className="side">
+        <Logo />
+        <div className="navlabel">Workspace</div>
+        <nav className="nav" aria-label="Main">
+          {nav.map(([id, label]) => (
+            <button key={id} className={'navbtn ' + (page === id ? 'active' : '')} aria-current={page === id ? 'page' : undefined}
+              onClick={() => { setPage(id); setNotice(''); }}>
+              <Icon name={id} />
+              {label}
+            </button>
+          ))}
+        </nav>
+        <div className="who">
+          <div className="avatar" aria-hidden="true">{user.name.charAt(0)}</div>
+          <div className="meta">
+            <b>{user.name}</b>
+            <small>{user.email}</small>
+          </div>
+          <button className="iconbtn" onClick={onLogout} aria-label="Sign out" title="Sign out"><Icon name="logout" /></button>
+        </div>
+      </aside>
+
+      <main className="main">
+        <header className="pagehead">
+          <div>
+            <div className="crumb">CloudPilot / {page}</div>
+            <h1>{nav.find((x) => x[0] === page)?.[1]}</h1>
+            <p>{subtitle}</p>
+          </div>
+          <div className="headtools">
+            <span className={'mode ' + (dash?.mode === 'AWS' ? 'aws' : '')}><i />{dash?.mode || 'Loading'} mode</span>
+            <button className="btn ghost sm" onClick={refresh}><Icon name="refresh" />Refresh</button>
+          </div>
+        </header>
+
+        {error && <div className="alert error" role="alert"><span>{error}</span><button onClick={() => setError('')}>Dismiss</button></div>}
+        {notice && <div className="alert success" role="status"><span>{notice}</span><button onClick={() => setNotice('')}>Dismiss</button></div>}
+
+        {page === 'overview' && (
+          <>
+            <section className="panel fleet" aria-label="Spend summary">
+              <section>
+                <div className="eyebrow">Estimated monthly compute</div>
+                <div className="bigmoney">{money(dash?.estimatedMonthly)}<em>USD</em></div>
+                <p className="fine">Illustrative calculation at {money(RATE)} per instance hour, not actual AWS billing data.</p>
+                <div className="fleetbar" role="img" aria-label={`${active} active, ${dash?.idle ?? 0} idle, ${dash?.stopped ?? 0} stopped`}>
+                  {active > 0 && <i className="dot-ok" style={{ flex: active }} />}
+                  {(dash?.idle ?? 0) > 0 && <i className="dot-warn" style={{ flex: dash.idle }} />}
+                  {(dash?.stopped ?? 0) > 0 && <i className="dot-off" style={{ flex: dash.stopped, opacity: 0.45 }} />}
+                </div>
+                <div className="legend">
+                  <span><i className="dot-ok" />Active {active}</span>
+                  <span><i className="dot-warn" />Idle {dash?.idle ?? 0}</span>
+                  <span><i className="dot-off" style={{ opacity: 0.45 }} />Stopped {dash?.stopped ?? 0}</span>
+                </div>
+              </section>
+              <section className="save">
+                <div className="eyebrow">Potential savings</div>
+                <div className="bigmoney">{money(dash?.estimatedSavings)}<em>/ month</em></div>
+                <p className="fine">Based on idle candidates being stopped for a full month. Idle means running with CPU below 10%.</p>
+                <div style={{ marginTop: 16 }}>
+                  <button className="btn primary sm" onClick={() => setPage('cost')}><Icon name="bolt" />Review {dash?.idle ?? 0} idle candidates</button>
+                </div>
+              </section>
+            </section>
+
+            <section className="panel readout" aria-label="Fleet counts">
+              {[
+                ['Total instances', dash?.total, 'dot-acc', 'Across ' + region],
+                ['Running', dash?.running, 'dot-ok', 'Currently billed'],
+                ['Stopped', dash?.stopped, 'dot-off', 'Not billed for compute'],
+                ['Idle candidates', dash?.idle, 'dot-warn', 'CPU below 10% in demo data'],
+              ].map(([t, v, c, n]) => (
+                <div key={t}>
+                  <div className="k"><i className={c} />{t}</div>
+                  <div className="v">{v ?? '—'}</div>
+                  <div className="n">{n}</div>
+                </div>
+              ))}
+            </section>
+
+            <InstancePanel {...panelProps} />
+
+            <div className="quick">
+              <button onClick={() => setPage('instances')}>Open instance manager <Icon name="arrow" /></button>
+              <button onClick={() => setPage('schedules')}>Create lifecycle schedule <Icon name="arrow" /></button>
+              <button onClick={() => setPage('cost')}>View cost insights <Icon name="arrow" /></button>
+            </div>
+          </>
+        )}
+
+        {page === 'instances' && <InstancePanel {...panelProps} />}
+
+        {page === 'schedules' && (
+          <>
+            <section className="panel">
+              <div className="panelhead">
+                <div>
+                  <h2>Create schedule</h2>
+                  <p>Add a schedule entry for the demo workspace.</p>
+                </div>
+                <span className="tag">LOCAL DEMO</span>
+              </div>
+              <form className="scheduleform" onSubmit={addSchedule}>
+                <div className="field">
+                  <label htmlFor="s-instance">EC2 instance</label>
+                  <select id="s-instance" className="select" required value={sched.instanceId} onChange={(e) => setSched({ ...sched, instanceId: e.target.value })}>
+                    <option value="">Choose instance</option>
+                    {instances.map((x) => <option key={x.id} value={x.id}>{x.name} ({x.id})</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor="s-action">Action</label>
+                  <select id="s-action" className="select" value={sched.action} onChange={(e) => setSched({ ...sched, action: e.target.value })}>
+                    <option value="start">Start</option>
+                    <option value="stop">Stop</option>
+                  </select>
+                </div>
+                <div className="field">
+                  <label htmlFor="s-time">Time</label>
+                  <input id="s-time" className="input" type="time" value={sched.time} onChange={(e) => setSched({ ...sched, time: e.target.value })} />
+                </div>
+                <div className="field">
+                  <label htmlFor="s-days">Repeat</label>
+                  <select id="s-days" className="select" value={sched.days} onChange={(e) => setSched({ ...sched, days: e.target.value })}>
+                    <option>Every day</option><option>Weekdays</option><option>Weekends</option><option>Once</option>
+                  </select>
+                </div>
+                <button className="btn primary" type="submit">Add schedule</button>
+              </form>
+              <p className="hint">Demo schedules are stored in memory. They are not automatically executed and reset when the backend restarts.</p>
+            </section>
+            <section className="panel">
+              <div className="panelhead">
+                <div>
+                  <h2>Schedule list</h2>
+                  <p>{schedules.length} configured {schedules.length === 1 ? 'entry' : 'entries'}</p>
+                </div>
+              </div>
+              {schedules.length ? (
+                schedules.map((s) => (
+                  <div className="row" key={s.id}>
+                    <span className="when">{s.time}</span>
+                    <div className="info">
+                      <b>{instances.find((x) => x.id === s.instanceId)?.name || s.instanceId}</b>
+                      <small><span className="mono">{s.instanceId}</span> · {s.days}</small>
+                    </div>
+                    <span className={'badge act-' + s.action}>{s.action}</span>
+                    <span className={'pill ' + (s.enabled ? 'state-on' : 'state-off')} style={{ textTransform: 'none' }}>{s.enabled ? 'Enabled' : 'Paused'}</span>
+                    <div className="rowbtns">
+                      <button className="btn neutral sm" onClick={() => toggleSchedule(s)}>{s.enabled ? 'Pause' : 'Enable'}</button>
+                      <button className="btn danger sm" onClick={() => deleteSchedule(s.id)}>Delete</button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="empty" style={{ borderTop: '1px solid var(--line)' }}>No schedules yet. Create one above, for example stop Development Server at 19:00 on weekdays.</div>
+              )}
+            </section>
+          </>
+        )}
+
+        {page === 'cost' && (
+          <>
+            <section className="panel readout" aria-label="Cost summary">
+              {[
+                ['Estimated monthly', money(dash?.estimatedMonthly), 'dot-acc', 'Illustrative compute estimate'],
+                ['Potential savings', money(dash?.estimatedSavings), 'dot-warn', 'If idle candidates stop'],
+                ['Running resources', dash?.running ?? '—', 'dot-ok', 'Currently active'],
+                ['Idle candidates', dash?.idle ?? '—', 'dot-warn', 'Demo CPU under 10%'],
+              ].map(([t, v, c, n]) => (
+                <div key={t}>
+                  <div className="k"><i className={c} />{t}</div>
+                  <div className="v">{v}</div>
+                  <div className="n">{n}</div>
+                </div>
+              ))}
+            </section>
+            <section className="panel">
+              <div className="panelhead">
+                <div>
+                  <h2>Optimization opportunities</h2>
+                  <p>Rule-based suggestions based on available instance state and demo CPU values.</p>
+                </div>
+              </div>
+              {idleList.map((x) => (
+                <div className="row opp" key={x.id}>
+                  <div className="info">
+                    <b>{x.name}</b>
+                    <small><span className="mono">{x.id}</span> · CPU {x.cpu}% · {x.type}</small>
+                    <small>Low observed demo CPU. Review workload before stopping.</small>
+                  </div>
+                  <div className="save-amt">{money(perInstance)}<small>per month</small></div>
+                  <button className="btn stop sm" onClick={() => action(x.id, 'stop')} disabled={!!busy}>
+                    {busy === x.id + 'stop' ? 'Working…' : 'Stop instance'}
+                  </button>
+                </div>
+              ))}
+              {!idleList.length && <div className="empty" style={{ borderTop: '1px solid var(--line)' }}>No idle candidates identified from current data.</div>}
+              <p className="hint" style={{ paddingTop: 14, borderTop: '1px solid var(--line)' }}>
+                Savings are approximate only. Actual AWS pricing depends on region, instance type, discounts, storage, data transfer, and billing details.
+              </p>
+            </section>
+          </>
+        )}
+
+        {page === 'activity' && (
+          <section className="panel">
+            <div className="panelhead">
+              <div>
+                <h2>Activity history</h2>
+                <p>Most recent 100 events in this running backend session.</p>
+              </div>
+            </div>
+            {logs.map((x) => (
+              <div className="row" key={x.id}>
+                <span className="logicon"><Icon name="activity" /></span>
+                <div className="info">
+                  <b>{x.action}</b>
+                  <small>Instance: <span className="mono">{x.instanceId}</span></small>
+                </div>
+                <time>{new Date(x.time).toLocaleString()}</time>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {page === 'settings' && (
+          <section className="panel">
+            <div className="panelhead"><div><h2>Workspace settings</h2></div></div>
+            <div className="setting"><span>Signed in as</span><b>{user.email}</b></div>
+            <div className="setting"><span>Connection mode</span><b>{dash?.mode || 'Loading'}</b></div>
+            <div className="setting"><span>AWS region</span><b>{instances[0]?.region || 'ap-south-1'}</b></div>
+            <div className="setting"><span>Refresh interval</span><b>7 seconds</b></div>
+            <div className="setting"><span>Data persistence</span><b>In-memory demo data</b></div>
+            <div className="setting" style={{ alignItems: 'center' }}>
+              <span>Session</span>
+              <button className="btn ghost sm" onClick={onLogout}><Icon name="logout" />Sign out</button>
+            </div>
+            <div className="noticebox">
+              <b>Security note:</b> sign-in on this page is a front-end demo that accepts any email and password. It does not protect anything. For a real deployment, verify credentials on the backend, issue session tokens there, and configure AWS credentials on the backend only with least-privilege IAM permissions. Never place AWS secrets in React frontend code.
+            </div>
+          </section>
+        )}
+        <div className="foot">CloudPilot · Student project interface · Cost values are illustrative</div>
+      </main>
+    </div>
+  );
+}
+
+function InstancePanel({ items, total, query, setQuery, filter, setFilter, action, busy }) {
+  return (
+    <section className="panel">
+      <div className="panelhead">
+        <div>
+          <h2>EC2 instances</h2>
+          <p>Review status and manage lifecycle actions.</p>
+        </div>
+        <div className="filters">
+          <div className="searchwrap">
+            <Icon name="search" />
+            <label className="sr" htmlFor="inst-search">Search instances</label>
+            <input id="inst-search" className="input sm" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search instances" />
+          </div>
+          <label className="sr" htmlFor="inst-filter">Filter by state</label>
+          <select id="inst-filter" className="select sm" value={filter} onChange={(e) => setFilter(e.target.value)}>
+            <option value="all">All states</option>
+            <option value="running">Running</option>
+            <option value="stopped">Stopped</option>
+          </select>
+        </div>
+      </div>
+      <div className="tablewrap">
+        <table>
+          <thead>
+            <tr><th>Instance</th><th>Type</th><th>Environment</th><th>State</th><th>CPU</th><th>Region</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            {items.map((x) => (
+              <tr key={x.id}>
+                <td><span className="nm">{x.name}</span><span className="id">{x.id}</span></td>
+                <td className="mono">{x.type}</td>
+                <td><span className="chip">{x.environment || '—'}</span></td>
+                <td><span className={'pill ' + x.state}><i />{x.state}</span></td>
+                <td>
+                  {x.state === 'running' && x.cpu !== null ? (
+                    <span className="cpu">
+                      <span className="meter" aria-hidden="true"><i className={isIdle(x) ? 'low' : ''} style={{ width: Math.max(3, x.cpu) + '%' }} /></span>
+                      <span className="mono">{x.cpu}%</span>
+                      {isIdle(x) && <span className="chip warn">Idle</span>}
+                    </span>
+                  ) : '—'}
+                </td>
+                <td className="mono">{x.region}</td>
+                <td>
+                  {x.state === 'running' ? (
+                    <button className="btn stop sm" disabled={!!busy} onClick={() => action(x.id, 'stop')}>
+                      {busy === x.id + 'stop' ? 'Working…' : <><Icon name="stop" />Stop</>}
+                    </button>
+                  ) : (
+                    <button className="btn start sm" disabled={!!busy} onClick={() => action(x.id, 'start')}>
+                      {busy === x.id + 'start' ? 'Working…' : <><Icon name="play" />Start</>}
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {!items.length && (
+              <tr><td colSpan="7" className="empty">No instances match your search.</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+      <div className="tablefoot">
+        <span>Showing {items.length} of {total} instances</span>
+        <span>Auto-refreshes every 7 seconds</span>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------- Root with session ---------------- */
+const SESSION_KEY = 'cloudpilot_session';
+function readSession() {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    const u = raw ? JSON.parse(raw) : null;
+    // Ignore a saved session that is missing the fields the dashboard needs.
+    return u && typeof u.name === 'string' && u.name && typeof u.email === 'string' ? u : null;
+  } catch (e) { return null; }
+}
+class Boundary extends React.Component {
+  constructor(props) { super(props); this.state = { failed: false }; }
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return (
+      <div className="formside" style={{ minHeight: '100dvh' }}>
+        <div className="formcard">
+          <h1>Something went wrong</h1>
+          <p className="sub">CloudPilot hit an unexpected problem. Clearing the saved session and reloading usually fixes it.</p>
+          <button className="btn primary" onClick={() => { try { localStorage.removeItem(SESSION_KEY); } catch (e) {} location.reload(); }}>Reset and reload</button>
+        </div>
+      </div>
+    );
+  }
+}
+function Root() {
+  const [user, setUser] = useState(readSession);
+  function login(u, remember) {
+    try {
+      if (remember) localStorage.setItem(SESSION_KEY, JSON.stringify(u));
+      else localStorage.removeItem(SESSION_KEY);
+    } catch (e) {}
+    setUser(u);
+  }
+  function logout() {
+    try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+    setUser(null);
+  }
+  return user ? <Dashboard user={user} onLogout={logout} /> : <Login onLogin={login} />;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Boundary><Root /></Boundary>);
+</script>
+
+</body></html>
